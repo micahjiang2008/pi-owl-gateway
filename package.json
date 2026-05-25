@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Multi-platform messaging gateway daemon (WeChat, Telegram, etc.)",
+  "description": "Multi-platform messaging gateway daemon (WeiXin, Telegram, etc.)",
   "author": "Micah <micahjiang2008> (https://github.com/micahjiang2008)",
   "license": "MIT",
   "repository": {
@@ -14,7 +14,7 @@
     "url": "https://github.com/micahjiang2008/pi-owl-gateway/issues"
   },
   "homepage": "https://github.com/micahjiang2008/pi-owl-gateway#readme",
-  "keywords": ["wechat", "weixin", "gateway", "pi", "bot", "messaging"],
+  "keywords": ["weixin", "gateway", "pi", "bot", "messaging"],
   "engines": {
     "node": ">=18"
   },

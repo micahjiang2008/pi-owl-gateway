@@ -61,7 +61,29 @@ function readSettings() {
 function writeSettings(update) {
 	const p = settingsPath();
 	const current = readSettings();
-	const merged = { ...current, ...update };
+	// Deep merge pi-owl-gateway namespace
+	const merged = { ...current };
+	if (update["pi-owl-gateway"] && current["pi-owl-gateway"]) {
+		merged["pi-owl-gateway"] = {
+			...current["pi-owl-gateway"],
+			...update["pi-owl-gateway"],
+		};
+		// Deep merge nested platform config
+		for (const key of Object.keys(update["pi-owl-gateway"])) {
+			if (
+				typeof update["pi-owl-gateway"][key] === "object" &&
+				update["pi-owl-gateway"][key] !== null &&
+				!Array.isArray(update["pi-owl-gateway"][key])
+			) {
+				merged["pi-owl-gateway"][key] = {
+					...(current["pi-owl-gateway"][key] || {}),
+					...update["pi-owl-gateway"][key],
+				};
+			}
+		}
+	} else {
+		Object.assign(merged, update);
+	}
 	const content = JSON.stringify(merged, null, 2) + "\n";
 	const tmp = p + ".tmp";
 	writeFileSync(tmp, content, "utf-8");
@@ -103,7 +125,7 @@ function parseArgs(argv) {
 // ────────────────────────────────────────────────────────────────────────────
 
 /**
- * WeChat QR login — inline, no TS dependency.
+ * WeiXin QR login — inline, no TS dependency.
  */
 async function weixinLogin() {
 	const { qrLogin } = await import("../lib/weixin-login.mjs");
@@ -137,12 +159,34 @@ async function weixinLogin() {
 	});
 
 	if (creds) {
-		writeSettings({
-			"micah-gw-wx-account-id": creds.accountId,
-			"micah-gw-wx-token": creds.token,
-			"micah-gw-wx-base-url": creds.baseUrl,
-			"micah-gw-wx-user-id": creds.userId,
-		});
+		const s = readSettings();
+		const merged = {
+			...s,
+			"pi-owl-gateway": {
+				...(s["pi-owl-gateway"] || {}),
+				weixin: {
+					"account-id": creds.accountId,
+					token: creds.token,
+					"base-url": creds.baseUrl,
+					"user-id": creds.userId,
+				},
+			},
+		};
+		// Clean up old flat keys
+		delete merged["micah-gw-wx-account-id"];
+		delete merged["micah-gw-wx-token"];
+		delete merged["micah-gw-wx-base-url"];
+		delete merged["micah-gw-wx-user-id"];
+		delete merged["micah-gw-wx-remote-dir"];
+		delete merged["remote-dir"];
+
+		const content = JSON.stringify(merged, null, 2) + "\n";
+		const p = settingsPath();
+		const tmp = p + ".tmp";
+		writeFileSync(tmp, content, "utf-8");
+		try { chmodSync(tmp, 0o600); } catch {}
+		try { renameSync(tmp, p); } catch { writeFileSync(p, content, "utf-8"); try { unlinkSync(tmp); } catch {} }
+
 		console.log(`\n凭证已保存到 ${settingsPath()}`);
 		console.log(`  accountId: ${creds.accountId}`);
 		return true;
@@ -254,9 +298,10 @@ function cmdStatus() {
 
 	// Show configured platforms from settings
 	const s = readSettings();
+	const gw = s["pi-owl-gateway"] || {};
 	const platformNames = [];
-	if (s["micah-gw-wx-account-id"]) {
-		platformNames.push("WeChat");
+	if ((gw.weixin && gw.weixin["account-id"]) || s["micah-gw-wx-account-id"]) {
+		platformNames.push("WeiXin");
 	}
 	if (platformNames.length > 0) {
 		console.log(`Platforms: ${platformNames.join(", ")}`);
@@ -287,7 +332,7 @@ function showHelp() {
 		"  node bin/gateway.mjs restart                Restart daemon",
 		"",
 		"Platforms:",
-		"  weixin   WeChat (iLink Bot API)",
+		"  weixin   WeiXin (iLink Bot API)",
 		"",
 		"Options:",
 		"  -p, --platform <name>   Target platform for login",

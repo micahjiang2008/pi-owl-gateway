@@ -1,7 +1,7 @@
 # pi-owl-gateway
 
 Multi-platform messaging gateway daemon for [pi](https://pi.dev).  
-Currently supports **WeChat** (via Tencent iLink Bot API). Telegram and more coming.
+Currently supports **WeiXin** (via Tencent iLink Bot API). Telegram and more coming.
 
 ## Install
 
@@ -12,7 +12,7 @@ npm install -g git+https://github.com/micahjiang2008/pi-owl-gateway.git
 ## Quick Start
 
 ```bash
-# WeChat QR login
+# WeiXin QR login
 pi-owl-gateway login -p weixin
 
 # Start daemon
@@ -45,25 +45,25 @@ Credentials and settings are stored in `~/.pi/agent/settings.json`:
 ## How It Works
 
 ```
-WeChat App  ←→  iLink Bot API  ←→  pi-owl-gateway daemon  ←→  pi SDK  ←→  LLM
+WeiXin App  ←→  iLink Bot API  ←→  pi-owl-gateway daemon  ←→  pi SDK  ←→  LLM
 ```
 
-1. Daemon polls WeChat for new messages (long-poll, 35s timeout)
+1. Daemon polls WeiXin for new messages (long-poll, 35s timeout)
 2. Messages are forwarded to pi SDK's AgentSession for AI processing
-3. AI response is sent back to WeChat
+3. AI response is sent back to WeiXin
 
 ## Platform Support
 
 | Platform | Status |
 |----------|--------|
-| WeChat   | ✅ Working |
+| WeiXin   | ✅ Working |
 | Telegram | ❌ Not yet |
 
 ## Requirements
 
 - Node.js >= 18
 - pi (`npm install -g @earendil-works/pi-coding-agent`)
-- A WeChat personal account (for QR login)
+- A WeiXin personal account (for QR login)
 
 ## License
 
