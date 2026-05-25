@@ -115,6 +115,10 @@ function parseArgs(argv) {
 			options.platform = arg.slice("--platform=".length);
 		} else if (arg.startsWith("-p=")) {
 			options.platform = arg.slice(3);
+		} else if (arg === "-w" || arg === "--work-dir") {
+			options.workDir = argv[++i] || "";
+		} else if (arg.startsWith("--work-dir=")) {
+			options.workDir = arg.slice("--work-dir=".length);
 		}
 	}
 	return { cmd, options };
@@ -127,7 +131,7 @@ function parseArgs(argv) {
 /**
  * WeiXin QR login — inline, no TS dependency.
  */
-async function weixinLogin() {
+async function weixinLogin(workDirFromCli) {
 	const { qrLogin } = await import("../lib/weixin-login.mjs");
 	const creds = await qrLogin((status, detail) => {
 		switch (status) {
@@ -160,15 +164,28 @@ async function weixinLogin() {
 
 	if (creds) {
 		const s = readSettings();
+		const gw = s["pi-owl-gateway"] || {};
+		const wx = gw.weixin || {};
+
+		// Set work-dir: CLI arg > existing config > default
+		const resolvedWorkDir = workDirFromCli || wx["work-dir"] || resolve(join(homedir(), ".pi", "gateway-workspace"));
+
+		// Set global default-work-dir if not already configured
+		if (!gw["default-work-dir"]) {
+			gw["default-work-dir"] = resolvedWorkDir;
+		}
+
 		const merged = {
 			...s,
 			"pi-owl-gateway": {
-				...(s["pi-owl-gateway"] || {}),
+				...gw,
 				weixin: {
+					...wx,
 					"account-id": creds.accountId,
 					token: creds.token,
 					"base-url": creds.baseUrl,
 					"user-id": creds.userId,
+					"work-dir": resolvedWorkDir,
 				},
 			},
 		};
@@ -336,9 +353,11 @@ function showHelp() {
 		"",
 		"Options:",
 		"  -p, --platform <name>   Target platform for login",
+		"  -w, --work-dir <path>   Workspace directory for AI sessions",
 		"",
 		"Examples:",
 		"  node bin/gateway.mjs login -p weixin",
+		"  node bin/gateway.mjs login -p weixin -w ~/projects/my-project",
 		"  node bin/gateway.mjs start",
 		"  node bin/gateway.mjs status",
 		"",
@@ -363,7 +382,7 @@ switch (cmd) {
 			process.exit(1);
 		}
 		if (platform === "weixin") {
-			await weixinLogin();
+			await weixinLogin(options.workDir);
 		} else {
 			console.error(`Unknown platform: ${platform}`);
 			process.exit(1);
